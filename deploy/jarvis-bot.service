@@ -1,0 +1,23 @@
+# Telegram bot as a systemd service.
+#   sudo cp deploy/*.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now jarvis-bot
+#   journalctl -u jarvis-bot -f          # watch the logs
+# Edit User= and the paths if you didn't clone to /home/jarvis/gex-levels.
+[Unit]
+Description=Jarvis Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jarvis
+WorkingDirectory=/home/jarvis/gex-levels
+ExecStart=/home/jarvis/gex-levels/.venv/bin/python -m jarvis --telegram
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

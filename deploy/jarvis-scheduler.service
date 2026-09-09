@@ -1,0 +1,19 @@
+# Scheduled jobs (morning brief, market scan, weekly content) as a service.
+# Install exactly like jarvis-bot.service.
+[Unit]
+Description=Jarvis scheduled jobs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jarvis
+WorkingDirectory=/home/jarvis/gex-levels
+ExecStart=/home/jarvis/gex-levels/.venv/bin/python -m jarvis --schedule
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

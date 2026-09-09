@@ -8,9 +8,10 @@ import time
 
 import requests
 
-from .. import brain, config
+from .. import brain, config, transcribe
 
 API = "https://api.telegram.org/bot{token}/{method}"
+FILE_API = "https://api.telegram.org/file/bot{token}/{path}"
 POLL_TIMEOUT = 50
 TELEGRAM_MAX_CHARS = 4096
 
@@ -31,6 +32,48 @@ def _send(chat_id: str, text: str) -> None:
         _call("sendMessage", chat_id=chat_id, text=text[start : start + TELEGRAM_MAX_CHARS])
 
 
+def _typing(chat_id: str) -> None:
+    """Show the typing indicator - a turn with tool calls can take a while."""
+    try:
+        _call("sendChatAction", chat_id=chat_id, action="typing")
+    except Exception:
+        pass  # cosmetic only, never worth failing a turn over
+
+
+def _download(file_id: str) -> bytes:
+    """Pull a file (a voice note) off Telegram's servers."""
+    file_path = _call("getFile", file_id=file_id)["result"]["file_path"]
+    url = FILE_API.format(token=config.TELEGRAM_BOT_TOKEN, path=file_path)
+    response = requests.get(url, timeout=60)
+    response.raise_for_status()
+    return response.content
+
+
+def _voice_to_text(chat_id: str, message: dict) -> str | None:
+    """Turn a voice note into text, or explain why we can't and return None."""
+    voice = message.get("voice") or message.get("audio") or message.get("video_note")
+    if not voice:
+        return None
+    if not transcribe.available():
+        _send(
+            chat_id,
+            "I can't hear voice notes yet - transcription isn't configured. "
+            "See SETUP.md step 7, or just send text.",
+        )
+        return None
+    _typing(chat_id)
+    try:
+        audio = _download(voice["file_id"])
+        text = transcribe.transcribe(audio)
+    except Exception as exc:
+        _send(chat_id, f"Couldn't transcribe that: {exc}")
+        return None
+    if not text:
+        _send(chat_id, "That came through empty - try again?")
+        return None
+    return text
+
+
 def _authorised(chat_id: str) -> bool:
     if not config.TELEGRAM_ALLOWED_IDS:
         # First run: nothing is locked down yet, so tell the owner how to.
@@ -47,10 +90,8 @@ def _handle(message: dict) -> None:
     if not _authorised(chat_id):
         return
 
-    text = message.get("text", "")
+    text = message.get("text", "") or _voice_to_text(chat_id, message) or ""
     if not text:
-        if "voice" in message:
-            _send(chat_id, "Voice notes aren't wired up yet - send text for now.")
         return
     if text.startswith("/start"):
         _send(chat_id, "Jarvis is up. Ask me for content, a plan, a market read, or a client email.")
@@ -60,6 +101,7 @@ def _handle(message: dict) -> None:
         _send(chat_id, "Conversation cleared. The vault still remembers everything.")
         return
 
+    _typing(chat_id)
     try:
         reply, _histories[chat_id] = brain.think(text, _histories.get(chat_id, []))
     except Exception as exc:  # keep the bot alive through any one bad turn

@@ -2,3 +2,5 @@ anthropic>=0.70
 python-dotenv>=1.0
 requests>=2.31
 yfinance>=0.2.40
+icalendar>=6.0
+recurring-ical-events>=3.0

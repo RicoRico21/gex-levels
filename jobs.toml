@@ -1,0 +1,63 @@
+# Scheduled work. Edit freely - no code changes needed.
+#
+#   name    what it's called in logs and notifications
+#   at      local time, 24h "HH:MM"
+#   days    any of mon tue wed thu fri sat sun
+#   prompt  exactly what you'd type to Jarvis yourself
+#   notify  true = push the result to you on Telegram
+#   file    optional vault note to append the result to
+#
+# Run `python -m jarvis --schedule` to start the scheduler, or
+# `python -m jarvis --run-job "morning brief"` to test one right now.
+
+[[job]]
+name = "morning brief"
+at = "07:00"
+days = ["mon", "tue", "wed", "thu", "fri"]
+notify = true
+file = "daily/{date}.md"
+prompt = """
+Produce my morning brief. Read my calendar for today, today's daily note if it
+exists, my recent log entries, and anything open in the trade journal. Give me:
+what actually matters today, what's slipping, and the one thing to do first.
+Then write a realistic plan for the day into today's daily note, scheduling deep
+work into the free blocks my calendar actually has.
+"""
+
+[[job]]
+name = "market open scan"
+at = "09:15"
+days = ["mon", "tue", "wed", "thu", "fri"]
+notify = true
+file = "trading/scans.md"
+prompt = """
+Pre-market scan. Check the levels and volatility on the tickers I'm tracking in
+the trade journal, search for any overnight news that would change a thesis I
+have open, and tell me in under 200 words: what changed, what it means for my
+open ideas, and anything worth watching today. Flag clearly if nothing changed.
+"""
+
+[[job]]
+name = "content block"
+at = "18:00"
+days = ["sun"]
+notify = true
+prompt = """
+Plan next week's content. Read my voice guide and the content pipeline, look at
+what I've published recently so we don't repeat, and draft three posts for the
+week that follow my voice guide. Save each one with save_content_draft.
+"""
+
+[[job]]
+name = "evening review"
+at = "21:00"
+days = ["mon", "tue", "wed", "thu", "fri"]
+notify = true
+file = "daily/{date}.md"
+prompt = """
+End of day. Look at today's plan and today's log. Write a short review into
+today's daily note: what got done, what didn't and why, and anything I said
+today that should become a durable note (a client preference, a decision, a
+lesson). Actually write those durable notes to the right files. Then tell me in
+three lines how the day went.
+"""
