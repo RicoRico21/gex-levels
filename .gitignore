@@ -1,0 +1,17 @@
+.env
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Your actual notes, drafts and trade logs are personal - keep the folder
+# structure and the templates, not the contents. Delete these lines if you'd
+# rather version-control the vault.
+vault/**
+!vault/**/
+!vault/**/.gitkeep
+!vault/README.md
+!vault/content/voice.md
+outbox/**
+!outbox/**/
+!outbox/**/.gitkeep
