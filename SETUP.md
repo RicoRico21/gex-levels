@@ -64,24 +64,61 @@ If PowerShell refuses with an execution-policy error:
 
 **Check it:** your prompt now starts with `(.venv)`.
 
-## 4. Get an API key
+## 4. Give it a brain — free, or paid
 
-1. Go to [console.anthropic.com](https://console.anthropic.com) and sign up.
-2. **Billing → add a payment method**, and put $20 on it. Without credit the key
-   exists but every call fails, which is a confusing way to start.
-3. **API keys → Create key**, and copy it. You only get to see it once.
+Two ways to run Jarvis. **Read this bit properly, it's where the money is.**
 
-Now create your config file:
+Your Claude subscription and the Claude *API* are two separate products with
+separate billing. The subscription covers claude.ai and Claude Code. An API key
+from the console is pay-as-you-go on top, billed per token. Paying for one does
+not give you the other — which is the usual reason people are surprised by a
+bill.
+
+### Option A — free, on the subscription you already pay for
+
+Jarvis drives the Claude Code CLI, which signs in with your subscription. No API
+key, no per-token cost.
 
 ```bash
-cp .env.example .env      # Windows: copy .env.example .env
+npm install -g @anthropic-ai/claude-code     # needs Node: nodejs.org
+claude                                        # log in once, then Ctrl-D to exit
+cp .env.example .env                          # optional; defaults are fine
 ```
 
-Open `.env` in any text editor and paste the key after `ANTHROPIC_API_KEY=`.
-No quotes, no spaces around the `=`.
+That's it — Jarvis auto-detects it when there's no API key. To force it,
+put `JARVIS_BACKEND=claude-code` in `.env`.
+
+What you give up:
+
+- **Turns count against your plan's usage limits**, shared with your own
+  interactive Claude Code use. Four scheduled jobs a day plus normal use is
+  fine on Max; on a smaller plan you'll want to trim `jobs.toml` to the one or
+  two jobs you actually read.
+- **The Python market tools don't run.** Claude Code brings its own file and
+  search tools — the vault works natively and is arguably better — but
+  `get_quote` and the volatility stats aren't there. It falls back to web
+  search for prices, and says where the number came from.
+- **It's for you.** Anthropic doesn't permit offering subscription login to
+  other people through something you build. Personal use, your own machine,
+  your own login. If Jarvis ever becomes a product for other people, they need
+  their own auth.
+
+### Option B — the API, paid
+
+Everything works, including the market tools, and nothing competes with your
+interactive usage.
+
+1. [console.anthropic.com](https://console.anthropic.com) → sign up.
+2. **Billing → add a payment method**, put $20 on it. Without credit the key
+   exists but every call fails, which is a confusing way to start.
+3. **API keys → Create key**, copy it (you only see it once).
+4. `cp .env.example .env`, then paste it after `ANTHROPIC_API_KEY=`. No quotes,
+   no spaces around the `=`.
 
 `.env` holds live keys. It's already gitignored — never commit it, never paste
 it into a chat, and rotate it in the console if you ever do.
+
+**You can switch any time** by changing `JARVIS_BACKEND` in `.env`. Start free.
 
 ## 5. First run
 
@@ -204,13 +241,21 @@ files.
 
 ## What it costs
 
-Per Claude API pricing at the time of writing (Opus 5, $5/M input and $25/M
-output tokens): a chat turn is somewhere under a cent; a job that reads your
-vault, searches the web and drafts something runs a few cents. The four
-scheduled jobs, plus normal daily use, lands in the region of $10–30/month.
-Set a spend limit in the console under Billing → Limits so it can't surprise
-you. If it's more than you want, `JARVIS_MODEL=claude-sonnet-5` in `.env` is
-roughly 2.5x cheaper and still good.
+**On the free backend: nothing extra.** It runs on the Claude subscription
+you're already paying for. The limit you'll hit is your plan's usage window,
+not a bill. Everything else Jarvis touches is free too — Telegram bots, ICS
+calendar feeds, Obsidian, and running it on your own laptop.
+
+**On the API backend:** a chat turn is under a cent; a job that reads the vault,
+searches the web and drafts something is a few cents. Four scheduled jobs plus
+normal use lands around $10–30/month. Set a spend limit under Billing → Limits
+so it can't surprise you, and `JARVIS_MODEL=claude-sonnet-5` cuts it roughly
+2.5x if that's too much.
+
+The only genuinely unavoidable cost is a VPS if you want it running 24/7, and
+that's ~$5/month — or free on Oracle Cloud's always-free tier. Your laptop
+works fine until then; jobs missed while it was shut get caught up when it
+wakes.
 
 ## When something breaks
 
@@ -221,7 +266,9 @@ roughly 2.5x cheaper and still good.
 | `command not found: python3` | Python isn't installed, or on Windows you didn't tick "Add to PATH" — reinstall |
 | `No module named jarvis` | You're in the wrong folder. `cd` into `gex-levels` |
 | `No module named anthropic` | The venv isn't active — rerun the activate line from step 3 |
-| `401` / `authentication_error` | Bad key in `.env`, or you copied it with a stray space |
+| `401` / `authentication_error` | Bad key in `.env`, or a stray space when you copied it |
+| `claude` isn't installed | Free backend needs Claude Code: `npm install -g @anthropic-ai/claude-code`, then run `claude` once |
+| "usage limit reached" | Free backend hit your plan's window. Wait for the reset, trim `jobs.toml`, or switch to the API backend |
 | `credit balance is too low` | Add money in the console under Billing |
 | Bot doesn't reply | Is `python -m jarvis --telegram` still running in a terminal? It stops when you close the window |
 | Jobs never fire | Is `--schedule` running? Is the machine's clock in the right timezone? |

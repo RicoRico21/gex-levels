@@ -8,6 +8,13 @@ plain markdown, sends nothing without you.
 **New here? Go to [SETUP.md](SETUP.md).** It assumes you've never written Python
 and takes about an hour.
 
+**It runs free on a Claude subscription.** Jarvis has two backends: the
+pay-as-you-go API, or the Claude Code CLI, which signs in with the subscription
+you already pay for and costs nothing per token. It picks the free one
+automatically when there's no API key. [SETUP.md step 4](SETUP.md#4-give-it-a-brain--free-or-paid)
+covers the tradeoff — the short version is that free turns count against your
+plan's usage limits and the Python market-data tools don't run there.
+
 ## The honest version of "how do I build this"
 
 The architecture people sell courses on is four boxes:
@@ -113,6 +120,7 @@ Scheduled work is the same idea without code — add a `[[job]]` block to
 ```
 jarvis/
   brain.py         the agent loop: Claude + every tool, with history
+  brain_cli.py     the free backend: drives Claude Code on your subscription
   scheduler.py     runs jobs.toml, catches up on what it missed
   onboard.py       the interview that fills the vault
   setup_check.py   --doctor

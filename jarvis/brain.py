@@ -2,6 +2,7 @@
 work, hand back what it said."""
 
 import datetime as _dt
+import os
 
 import anthropic
 
@@ -93,12 +94,32 @@ def _text_of(message) -> str:
     ).strip()
 
 
-def think(user_input: str, history: list | None = None, owner: str = "") -> tuple[str, list]:
-    """Run one turn. Returns (reply text, updated history).
+def using_cli_backend() -> bool:
+    """True when we should run on the Claude Code subscription, not the API."""
+    if config.BACKEND == "claude-code":
+        return True
+    if config.BACKEND == "api":
+        return False
+    from . import brain_cli  # auto: prefer the free path when there is no key
 
-    Pass the returned history back in on the next call to continue the
-    conversation.
+    return not os.getenv("ANTHROPIC_API_KEY") and brain_cli.available()
+
+
+def think(user_input: str, history=None, owner: str = "") -> tuple[str, object]:
+    """Run one turn. Returns (reply text, updated conversation state).
+
+    Pass the state back in on the next call to continue the conversation. Its
+    shape depends on the backend, so treat it as opaque.
     """
+    if using_cli_backend():
+        from . import brain_cli
+
+        return brain_cli.think(user_input, history, owner)
+    return _think_api(user_input, history, owner)
+
+
+def _think_api(user_input: str, history: list | None = None, owner: str = "") -> tuple[str, list]:
+    """One turn through the pay-as-you-go Messages API with the tool runner."""
     config.ensure_dirs()
     client = _client()
     messages = list(history or []) + [{"role": "user", "content": user_input}]

@@ -61,15 +61,34 @@ def _check_env_file() -> bool:
     if env.exists():
         _line(OK, ".env exists")
         return True
-    _line(BAD, ".env missing", "Run: cp .env.example .env   then add your API key")
+    _line(WARN, ".env missing - defaults will be used",
+          "Run: cp .env.example .env   (the free backend needs no API key)")
     return False
 
 
-def _check_anthropic() -> bool:
+def _check_backend() -> bool:
+    """Which brain is in use, and does it actually work?"""
+    from . import brain, brain_cli
+
+    if brain.using_cli_backend():
+        if not brain_cli.available():
+            _line(BAD, "Free backend selected but `claude` isn't installed",
+                  "Run: npm install -g @anthropic-ai/claude-code   then run `claude` once to log in")
+            return False
+        _line(OK, "Backend: Claude Code CLI (free - uses your subscription)")
+        print("         checking it can actually run a turn...")
+        reply, _ = brain_cli.think("Reply with exactly: ok")
+        if "ok" in reply.lower()[:40]:
+            _line(OK, "Claude Code answered - you're running at no extra cost")
+            return True
+        _line(BAD, "Claude Code couldn't complete a turn", reply[:200])
+        return False
+
     key = os.getenv("ANTHROPIC_API_KEY", "")
     if not key:
-        _line(BAD, "ANTHROPIC_API_KEY not set",
-              "Get one at console.anthropic.com/settings/keys and put it in .env")
+        _line(BAD, "Backend: API, but ANTHROPIC_API_KEY is not set",
+              "Either add a key from console.anthropic.com, or set "
+              "JARVIS_BACKEND=claude-code to run free on your subscription")
         return False
     try:
         import anthropic
@@ -78,7 +97,7 @@ def _check_anthropic() -> bool:
     except Exception as exc:
         _line(BAD, f"Claude API key rejected or unreachable ({type(exc).__name__})", str(exc)[:160])
         return False
-    _line(OK, f"Claude API works, model {config.MODEL} available")
+    _line(OK, f"Backend: Anthropic API (paid), model {config.MODEL} available")
     return True
 
 
@@ -168,9 +187,9 @@ def run() -> int:
     essential = [
         _check_python(),
         _check_packages(),
-        _check_env_file(),
-        _check_anthropic(),
+        _check_backend(),
     ]
+    _check_env_file()
     print()
     _check_telegram()
     _check_calendar()

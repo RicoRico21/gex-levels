@@ -22,6 +22,11 @@ def _flag(env_var: str, default: bool = False) -> bool:
 VAULT_DIR = _path("JARVIS_VAULT_DIR", "./vault")
 OUTBOX_DIR = _path("JARVIS_OUTBOX_DIR", "./outbox")
 
+# "api"          - pay-as-you-go Anthropic API key (needs credit)
+# "claude-code"  - free: drives the Claude Code CLI on your subscription
+# "auto"         - claude-code when there is no API key and claude is installed
+BACKEND = os.getenv("JARVIS_BACKEND", "auto").strip().lower()
+
 MODEL = os.getenv("JARVIS_MODEL", "claude-opus-5")
 EFFORT = os.getenv("JARVIS_EFFORT", "high")
 MAX_TOKENS = int(os.getenv("JARVIS_MAX_TOKENS", "16000"))
